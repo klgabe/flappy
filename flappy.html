@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flappy Baguette 🇫🇷</title>
+
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: skyblue;
+    }
+
+    canvas {
+        display: block;
+        margin: auto;
+        background: linear-gradient(#87CEEB, #ffffff);
+    }
+
+    #gameOverScreen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        display: none;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin-top: 10px;
+        cursor: pointer;
+    }
+</style>
+</head>
+
+<body>
+
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<div id="gameOverScreen">
+    <h1>You Died 💀</h1>
+    <p id="scoreText"></p>
+    <p id="usdText"></p>
+    <button onclick="restartGame()">Restart</button>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let bird, gravity, pipes, coins, score, gameOver;
+
+function resetGame() {
+    bird = { x: 50, y: 200, width: 40, height: 20, velocity: 0 };
+    gravity = 0.5;
+    pipes = [];
+    coins = [];
+    score = 0;
+    gameOver = false;
+}
+
+resetGame();
+
+// Jump
+document.addEventListener("keydown", () => {
+    bird.velocity = -8;
+});
+
+// Create pipes (monuments)
+function createPipe() {
+    let gap = 150;
+    let topHeight = Math.random() * 300 + 50;
+
+    pipes.push({
+        x: canvas.width,
+        top: topHeight,
+        bottom: canvas.height - topHeight - gap
+    });
+
+    // Add coin
+    coins.push({
+        x: canvas.width + 50,
+        y: topHeight + gap / 2,
+        value: [1, 5, 10][Math.floor(Math.random() * 3)]
+    });
+}
+
+// Draw baguette (bird)
+function drawBird() {
+    ctx.fillStyle = "#d4a373";
+    ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+}
+
+// Draw pipes (monuments)
+function drawPipes() {
+    ctx.fillStyle = "#555";
+
+    pipes.forEach(pipe => {
+        ctx.fillRect(pipe.x, 0, 50, pipe.top); // top
+        ctx.fillRect(pipe.x, canvas.height - pipe.bottom, 50, pipe.bottom); // bottom
+    });
+}
+
+// Draw coins (€)
+function drawCoins() {
+    coins.forEach(coin => {
+        ctx.fillStyle = "gold";
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "black";
+        ctx.fillText("€" + coin.value, coin.x - 10, coin.y + 4);
+    });
+}
+
+// Update game
+function update() {
+    if (gameOver) return;
+
+    bird.velocity += gravity;
+    bird.y += bird.velocity;
+
+    pipes.forEach(pipe => pipe.x -= 2);
+    coins.forEach(coin => coin.x -= 2);
+
+    // Collision with pipes
+    pipes.forEach(pipe => {
+        if (
+            bird.x < pipe.x + 50 &&
+            bird.x + bird.width > pipe.x &&
+            (bird.y < pipe.top || bird.y + bird.height > canvas.height - pipe.bottom)
+        ) {
+            endGame();
+        }
+    });
+
+    // Collision with coins
+    coins = coins.filter(coin => {
+        if (
+            bird.x < coin.x + 10 &&
+            bird.x + bird.width > coin.x &&
+            bird.y < coin.y + 10 &&
+            bird.y + bird.height > coin.y
+        ) {
+            score += coin.value;
+            return false;
+        }
+        return true;
+    });
+
+    // Ground collision
+    if (bird.y + bird.height > canvas.height || bird.y < 0) {
+        endGame();
+    }
+}
+
+// Draw everything
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawBird();
+    drawPipes();
+    drawCoins();
+
+    ctx.fillStyle = "black";
+    ctx.fillText("€: " + score, 10, 20);
+}
+
+// Game loop
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// Spawn pipes every 2 seconds
+setInterval(createPipe, 2000);
+
+loop();
+
+// End game
+function endGame() {
+    gameOver = true;
+
+    let usd = (score * 1.08).toFixed(2); // approximate conversion
+
+    document.getElementById("scoreText").innerText =
+        "You collected €" + score;
+
+    document.getElementById("usdText").innerText =
+        "That's about $" + usd + " USD";
+
+    document.getElementById("gameOverScreen").style.display = "block";
+}
+
+// Restart
+function restartGame() {
+    document.getElementById("gameOverScreen").style.display = "none";
+    resetGame();
+}
+</script>
+
+</body>
+</html>
